@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# ignore dataset dir
+WHUS2-CD-DATA/
+
 # C extensions
 *.so
 
