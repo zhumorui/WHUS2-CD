@@ -3,8 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# ignore dataset dir
+# dataset dir
 WHUS2-CD-DATA/
+
+# backup for dataset
+backup_dataset/ 
 
 # C extensions
 *.so
