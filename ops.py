@@ -9,22 +9,21 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 import tensorflow as tf
 from collections import OrderedDict
-from tensorflow.keras.layers import *
-from tensorflow.keras.models import Sequential
 from gdaldiy import *
 
+
 def conv2d(input_,output_dim,kernel_size=3,stride=2,padding="SAME",biased=True):
-    return Conv2D(output_dim,kernel_size=[kernel_size,kernel_size],strides=[stride,stride],padding=padding,use_bias=biased)(input_)
+    return tf.keras.layers.Conv2D(output_dim,kernel_size=[kernel_size,kernel_size],strides=[stride,stride],padding=padding,use_bias=biased)(input_)
 def deconv2d(input_,output_dim,kernel_size=4,stride=2,padding="SAME",biased=True):
-    return Conv2DTranspose(output_dim,kernel_size=[kernel_size,kernel_size],strides=[stride,stride],padding=padding,use_bias=biased)(input_)
+    return tf.keras.layers.Conv2DTranspose(output_dim,kernel_size=[kernel_size,kernel_size],strides=[stride,stride],padding=padding,use_bias=biased)(input_)
 def DSC(input_, output_dim,kernel_size=3, stride=1, padding="SAME",scale=1, biased=True):
-    return SeparableConv2D(input_.shape[-1],kernel_size=[kernel_size,kernel_size],strides=[stride,stride],padding=padding,depth_multiplier=scale,use_bias=biased)(input_)
+    return tf.keras.layers.SeparableConv2D(input_.shape[-1],kernel_size=[kernel_size,kernel_size],strides=[stride,stride],padding=padding,depth_multiplier=scale,use_bias=biased)(input_)
 def MDSC(input_,output_dim,kernel_list=[3,5], stride=1, padding="SAME",scale=1,biased=True):
     depthoutput_list=[]
     for i in range(len(kernel_list)):
-        depth_output=DepthwiseConv2D(kernel_size=kernel_list[i],strides=stride,padding=padding,depth_multiplier=scale)
+        depth_output = tf.keras.layers.DepthwiseConv2D(kernel_size=kernel_list[i],strides=stride,padding=padding,depth_multiplier=scale)
         depthoutput_list.append(depth_output(input_))
-    output = concatenate(depthoutput_list,axis=-1)
+    output = tf.keras.layers.concatenate(depthoutput_list,axis=-1)
     output = conv2d(output,output_dim,kernel_size=1,stride=1,padding=padding,biased=biased)
     return output
 def SDC(input_,output_dim, kernel_size=3,stride=1,dilation=2,padding='SAME', biased=True):
@@ -34,10 +33,10 @@ def SDC(input_,output_dim, kernel_size=3,stride=1,dilation=2,padding='SAME', bia
     input_dim = input_.shape[-1]
     fix_w_size = dilation * 2 - 1
     eo = tf.expand_dims(input_,-1)
-    o = Conv3D(1,kernel_size=[fix_w_size, fix_w_size,1],strides=[stride,stride,stride],padding=padding,use_bias=biased)(eo)
+    o = tf.keras.layers.Conv3D(1,kernel_size=[fix_w_size, fix_w_size,1],strides=[stride,stride,stride],padding=padding,use_bias=biased)(eo)
     o = eo + o
     o = tf.squeeze(o,-1)
-    o = Conv2D(output_dim,kernel_size=[kernel_size,kernel_size],strides=[stride,stride],padding=padding,dilation_rate=(dilation, dilation),use_bias=biased)(o)
+    o = tf.keras.layers.Conv2D(output_dim,kernel_size=[kernel_size,kernel_size],strides=[stride,stride],padding=padding,dilation_rate=(dilation, dilation),use_bias=biased)(o)
     return o
 def SDRB(input_, kernel_size=3,stride=1,dilation=2,training=False, biased=True):
     output_dim=input_.get_shape()[-1]
@@ -48,9 +47,9 @@ def SDRB(input_, kernel_size=3,stride=1,dilation=2,training=False, biased=True):
     sconv2=batch_norm(sconv2,training)
     return relu(sconv2+input_) 
 def relu(input_):
-    return ReLU()(input_)
+    return tf.keras.layers.ReLU()(input_)
 def lrelu(input_):
-    return LeakyReLU()(input_)
+    return tf.keras.layers.LeakyReLU()(input_)
 def avg_pooling(input_,kernel_size=2,stride=2,padding="same"):
     return tf.keras.layers.AveragePooling2D((kernel_size,kernel_size),stride,padding)(input_)
 def max_pooling(input_,kernel_size=2,stride=2,padding="same"):
@@ -61,9 +60,9 @@ def dropout(input_,rate=0.2,training=True):
     """  
     return tf.keras.layers.Dropout(rate)(input_,training)
 def GAP(input_):
-    return GlobalAveragePooling2D()(input_)
+    return tf.keras.layers.GlobalAveragePooling2D()(input_)
 def batch_norm(input_,training=True):
-    return BatchNormalization()(input_,training)
+    return tf.keras.layers.BatchNormalization()(input_,training=True)
 class InstanceNormalization(tf.keras.layers.Layer):
   def __init__(self, epsilon=1e-5):
     super(InstanceNormalization, self).__init__()
@@ -95,7 +94,7 @@ def norm(input_,norm='batch_norm',training=True):
     if norm==None:
         return input_
     elif norm=='batch_norm':
-        return BatchNormalization()(input_,training)
+        return tf.keras.layers.BatchNormalization()(input_,training)
     elif norm=='instance_norm':
         return InstanceNormalization()(input_)
 
@@ -103,9 +102,9 @@ def act(input_,activation='relu'):
     if activation==None:
         return input_
     elif activation=='relu':
-        return ReLU()(input_)
+        return tf.keras.layers.ReLU()(input_)
     elif activation=='lrelu':
-        return LeakyReLU(alpha=0.2)(input_)
+        return tf.keras.layers.LeakyReLU(alpha=0.2)(input_)
 
   
 def diydecay(steps,baselr,cycle_step=100000,decay_steps=100,decay_rate=0.96):

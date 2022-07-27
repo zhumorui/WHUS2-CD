@@ -25,6 +25,7 @@ from CDFM3SF import *
 from ops import *
 from gdaldiy import *
 import os
+
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 parser = argparse.ArgumentParser(description='')
 parser.add_argument("--snapshot_dir", default='./snapshots/', help="path of snapshots") #保存模型的路径
@@ -46,6 +47,13 @@ parser.add_argument("--bands", type=int, default=[4,6,3], help="load batch size"
 parser.add_argument("--classes", type=int, default=1, help="load batch size")
 parser.add_argument("--output_level", type=int, default=1, help="load batch size")
 args = parser.parse_args()
+
+
+
+
+
+
+
 
 rgb_colors=OrderedDict([
     ("cloud-free",np.array([0],dtype=np.uint8)),

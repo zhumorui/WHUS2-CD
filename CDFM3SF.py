@@ -4,6 +4,7 @@ Created on Fri Dec  7 16:56:44 2018
 
 @author: lijun
 """
+
 import tensorflow as tf
 from ops import *
 def CDFM3SF(input_dim, gf_dim=64, reuse=False,training=False, name="CD-FM3SF"):
@@ -64,5 +65,8 @@ def CDFM3SF(input_dim, gf_dim=64, reuse=False,training=False, name="CD-FM3SF"):
     output1 = conv2d(d3,1,stride=1)
         # d8 is (256 x 256 x output_c_dim)
     return tf.keras.Model([input_,input_1,input_2],[output1,output2,output3],name=name)
-# model = generator_unet([4,6,3])
-# print(model.summary())
+
+
+if __name__ == '__main__':
+    model = CDFM3SF(input_dim=[4,6,3])
+    print(model.summary())
