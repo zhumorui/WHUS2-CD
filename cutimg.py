@@ -10,7 +10,12 @@ import os
 import glob
 from gdaldiy import *
 
-
+"""
+The source file should be organized as follows:
+./train/10m/file1.tif   (4 bands 2/3/4/8)
+./train/20m/file1.tif   (6 bands 5/6/7/8A/11/12)
+./train/60m/file1.tif   (3 bands 1/9/10)
+"""
 
 def cut_data(filedir):
     window_size=384 #384 for 10 m bands, 192 for 20 m bands, 64 for 60 m bands.
@@ -44,13 +49,6 @@ def multi_dir(path):
 
 
 if __name__ == "__main__":
-
-    """
-    The source file should be organized as follows:
-    ./train/10m/file1.tif   (4 bands 2/3/4/8)
-    ./train/20m/file1.tif   (6 bands 5/6/7/8A/11/12)
-    ./train/60m/file1.tif   (3 bands 1/9/10)
-    """
     
     sourcedir='./train/'#image dir such as    
     name='10m'#20m, 60m
