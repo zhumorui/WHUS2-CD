@@ -116,11 +116,12 @@ def diydecay(steps,baselr,cycle_step=100000,decay_steps=100,decay_rate=0.96):
     step=((i+1)/2)*steps-i*((k+1)//2)*decay_steps
     dlr = clr*decay_rate**(int(step))      
     return dlr
-def decay(global_steps,baselr,start_decay_step=100000,cycle_step=100000,decay_steps=100,decay_rate=0.96):
+def decay(global_steps,baselr,start_decay_step=100000,cycle_step=100000,decay_steps=5,decay_rate=0.995):
     lr=np.where(np.greater_equal(global_steps,start_decay_step),
                 diydecay(global_steps-start_decay_step,baselr,cycle_step,decay_steps,decay_rate),
                 baselr)
     return lr
+
 
 def l2_loss(x):
     return tf.sqrt(tf.reduce_sum(x**2))

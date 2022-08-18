@@ -5,6 +5,14 @@ __pycache__/
 
 # dataset dir
 WHUS2-CD-DATA/
+prepared_dataset/
+
+
+# output dirs
+output/
+snapshots/
+train_out/
+
 
 # backup for dataset
 backup_dataset/ 

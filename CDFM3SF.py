@@ -7,6 +7,7 @@ Created on Fri Dec  7 16:56:44 2018
 
 import tensorflow as tf
 from ops import *
+
 def CDFM3SF(input_dim, gf_dim=64, reuse=False,training=False, name="CD-FM3SF"):
     # dropout_rate = 0.8
     input_ = tf.keras.layers.Input(shape=[None,None,input_dim[0]]) 

@@ -3,27 +3,24 @@
 Created on Mon Dec  3 16:57:36 2018
 
 @author: Neoooli
+@Revised by Morin
 """
 
 from __future__ import print_function
  
 import argparse
-from datetime import datetime
+from inspect import ArgInfo
 from random import shuffle
-import random
 import os
-import sys
-import time
-import math
 import tensorflow as tf
 
 import numpy as np
 import glob
-from PIL import Image
 from collections import OrderedDict
 from CDFM3SF import *
 from ops import *
 from gdaldiy import *
+import time
 import os
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
@@ -38,11 +35,10 @@ parser.add_argument("--lamda", type=float, default=10.0, help="L1 lamda") #训�
 parser.add_argument('--beta1', dest='beta1', type=float, default=0.5, help='momentum term of adam') #adam优化器的beta1参数
 parser.add_argument('--beta2', dest='beta2', type=float, default=0.9, help='momentum term of adam') #adam优化器的beta1参数
 parser.add_argument("--summary_pred_every", type=int, default=100, help="times to summary.") #训练中每过多少step保存训练日志(记录一下loss值)
-parser.add_argument("--write_pred_every", type=int, default=1000, help="times to write.") #训练中每过多少step保存可视化结果
+parser.add_argument("--write_pred_every", type=int, default=100, help="times to write.") #训练中每过多少step保存可视化结果
 parser.add_argument("--save_pred_every", type=int, default=10000, help="times to save.") #训练中每过多少step保存模型(可训练参数)
-parser.add_argument("--x_train_data_path", default='f:/lijun/data/graduatedata/clouddetection/S2A/test/trainDNclips/10m', help="path of x training datas.") #x域的训练图片路径
-parser.add_argument("--y_train_data_path", default='f:/lijun/data/graduatedata/clouddetection/S2A/test/trainlabelclips/10m', help="path of y training datas.") #y域的训练图片路径
-parser.add_argument("--batch_size", type=int, default=16,help="load batch size") #batch_size
+parser.add_argument("--train_data_path", default='prepared_dataset/train', help="path of training datas.") #训练图片路径, 其他波段数据路径自动识别
+parser.add_argument("--batch_size", type=int, default=6,help="load batch size") #batch_size
 parser.add_argument("--bands", type=int, default=[4,6,3], help="load batch size") #batch_size
 parser.add_argument("--classes", type=int, default=1, help="load batch size")
 parser.add_argument("--output_level", type=int, default=1, help="load batch size")
@@ -51,13 +47,10 @@ args = parser.parse_args()
 
 
 
-
-
-
-
 rgb_colors=OrderedDict([
     ("cloud-free",np.array([0],dtype=np.uint8)),
     ("cloud",np.array([255],dtype=np.uint8))])  
+    
 def save(saver, sess, logdir, step): #保存模型的save函数
    model_name = 'model' #保存的模型名前缀
    checkpoint_path = os.path.join(logdir, model_name) #模型的保存路径与名称
@@ -69,9 +62,11 @@ def save(saver, sess, logdir, step): #保存模型的save函数
 def cv_inv_proc(img): #cv_inv_proc函数将读取图片时归一化的图片还原成原图
     img_rgb = (img+1)*127.5
     return img_rgb.astype(np.float32) #返回bgr格式的图像，方便cv2写图像
+
 def acv_inv_proc(img): #cv_inv_proc函数将读取图片时归一化的图片还原成原图
     img_rgb = img*255.0
     return img_rgb.astype(np.float32) #返回bgr格式的图像，方便cv2写图像 
+
 def get_write_picture(batch_x_image,batch_label_image,pre): #get_write_picture函数得到训练过程中的可视化结果
     batch_x_image=batch_x_image[0][:,:,[0,1,2]]
     low,high=np.percentile(batch_x_image,(2,98))
@@ -85,26 +80,28 @@ def get_write_picture(batch_x_image,batch_label_image,pre): #get_write_picture�
     row1 = np.concatenate((x_image,np.concatenate((label,label,label),axis=2),np.concatenate((pre,pre,pre),axis=2)), axis=1) #得到训练中可视化结果的第一行
     return row1 
  
-def make_train_data_list(data_path): #make_train_data_list函数得到训练中的x域和y域的图像路径名称列表
-    filepath= glob.glob(os.path.join(data_path, "*")) #读取全部的x域图像路径名称列表
+def make_train_data_list(data_path): #make_train_data_list函数得到训练图像路径名称列表
+    files_path= glob.glob(os.path.join(data_path,"10m","*")) 
     image_path_lists=[]
-    for i in range(len(filepath)):
-         path=glob.glob(os.path.join(filepath[i], "*"))
-         for j in range(len(path)):
-             image_path_lists.append(path[j]) #将x域图像数量与y域图像数量对齐
+    for file_path in files_path:
+        image_path_lists.append(file_path)
     return image_path_lists
     
 def l1_loss(src, dst): #定义l1_loss
     return tf.reduce_mean(tf.abs(tf.cast(src,tf.float32) - tf.cast(dst,tf.float32)))
+
 def l2_loss(x):
     return tf.sqrt(tf.reduce_sum(x**2))
+
 def gan_loss(src, dst): #定义gan_loss，在这里用了二范数
     return tf.reduce_mean((tf.cast(src,tf.float32) - tf.cast(dst,tf.float32))**2)
+
 class maintrain(object):
     """docstring for maintrain"""
     def __init__(self):
         super(maintrain, self).__init__() 
         self.Net = CDFM3SF(args.bands,training=True,name="CD-FM3SF")
+        print("Sucessfully created net!")
         self.ag_optimizer = tf.keras.optimizers.Adam(args.base_lr,args.beta1,args.beta2)
         self.ckpt = tf.train.Checkpoint(Net=self.Net)
 
@@ -129,7 +126,7 @@ class maintrain(object):
 
         return cost_sum,tf.nn.sigmoid(logits[0])
 
-    def train(self,x_datalists,y_datalists):
+    def train(self,train_10m_list):
         print ('Start Training')
         #存储训练日志
         train_summary_writer = tf.summary.create_file_writer(args.snapshot_dir)
@@ -141,43 +138,45 @@ class maintrain(object):
             step=int(path.split('-')[-1])
         else: 
             step=1       
-        leny=len(y_datalists)
-        start_epoch=(step*args.batch_size)//leny+1
-        start=(step-(start_epoch-1)*(leny//args.batch_size))*args.batch_size
+  
+        start_epoch=(step*args.batch_size)//len(train_10m_list)+1
+        start=(step-(start_epoch-1)*(len(train_10m_list)//args.batch_size))*args.batch_size
         for epoch in range(start_epoch,args.epoch): #训练epoch数       
                #每训练一个epoch，就打乱一下x域图像顺序
-            shuffle(y_datalists) #每训练一个epoch，就打乱一下y域图像顺序           
-            data_list= [name.replace('labelclips','DNclips') for name in y_datalists]
-            data_list1= [name.replace('10m','20m') for name in data_list]
-            data_list2= [name.replace('10m','60m') for name in data_list]           
-            while (start+args.batch_size)<leny:   
+            shuffle(train_10m_list) #每训练一个epoch，就打乱一下y域图像顺序    
+            train_20m_list = [name.replace('10m','20m') for name in train_10m_list]
+            trian_60m__list = [name.replace('10m','60m') for name in train_10m_list]    
+            label_list =  [name.replace('train/10m','label') for name in train_10m_list]
+
+            while (start+args.batch_size)<len(train_10m_list):   
                 k = np.random.randint(low=-3, high=3)             
-                batch_input_img=read_imgs(data_list[start:start+args.batch_size],10000,k)
-                batch_input_img1=read_imgs(data_list1[start:start+args.batch_size],10000,k)
-                batch_input_img2=read_imgs(data_list2[start:start+args.batch_size],10000,k)
-                batch_input_label=read_labels(y_datalists[start:start+args.batch_size],k) 
-                lr=tf.convert_to_tensor(decay(step,args.base_lr),tf.float32)              
-                l,logitss= self.train_step([batch_input_img,batch_input_img1,batch_input_img2],
+                batch_input_10m_img=read_imgs(train_10m_list[start:start+args.batch_size],10000,k)
+                batch_input_20m_img=read_imgs(train_20m_list[start:start+args.batch_size],10000,k)
+                batch_input_60m_img=read_imgs(trian_60m__list[start:start+args.batch_size],10000,k)
+                batch_input_label=read_labels(label_list[start:start+args.batch_size],k) 
+                lr=tf.convert_to_tensor(decay(step,args.base_lr),tf.float32)       
+                l,logitss= self.train_step([batch_input_10m_img,batch_input_20m_img,batch_input_60m_img],
                             batch_input_label,
                             lr) #得到每个step中的生成器和判别器loss
                 step=step+1
-                start=start+args.batch_size           
-                if step% args.summary_pred_every == 0: #每过summary_pred_every次保存训练日志
+                start=start+args.batch_size       
+                if step % args.summary_pred_every == 0: #每过summary_pred_every次保存训练日志
                     with train_summary_writer.as_default():
                         tf.summary.scalar('loss',l.numpy(),step)
-                if step% args.save_pred_every == 0: #每过summary_pred_every次保存训练日志
+                if step % args.save_pred_every == 0: #每过summary_pred_every次保存训练日志
                     ckpt_manager.save(checkpoint_number=step)
                 if step % args.write_pred_every == 0: #每过write_pred_every次写一下训练的可视化结果
-                    write_image = get_write_picture(batch_input_img.numpy(),
+                    write_image = get_write_picture(batch_input_10m_img.numpy(),
                             batch_input_label.numpy(),
                             logitss.numpy()) #得到训练的可视化结果
                     write_image_name = args.out_dir + "/out"+ str(epoch)+'_'+str(step)+ ".png" #待保存的训练可视化结果路径与名称
                     imgwrite(write_image_name,np.uint8(write_image)) #保存训练的可视化结果
                     print(str(epoch),str(step),l.numpy())
             start=0
-            if epoch==40:
+            if epoch==args.epoch:
                 ckpt_manager.save(checkpoint_number=epoch)
                 exit()
+        print("step: {}".format(step))
 
 def main():
     gpus = tf.config.experimental.list_physical_devices(device_type='GPU')#获取GPU列表
@@ -186,12 +185,18 @@ def main():
         os.makedirs(args.snapshot_dir)
     if not os.path.exists(args.out_dir): #如果保存训练中可视化输出的文件夹不存在则创建
         os.makedirs(args.out_dir)
-    x_datalists = make_train_data_list(args.x_train_data_path) #得到数量相同的x域和y域图像路径名称列表
-    y_datalists = make_train_data_list(args.y_train_data_path)
+
+    trian_10m_data_path_lists = make_train_data_list(args.train_data_path) 
+    trian_10m_data_path_lists = trian_10m_data_path_lists[:100]
     
+    # Check dataset and label data integrity
+    for path in trian_10m_data_path_lists:
+        assert os.path.exists(path.replace('10m','20m'))
+        assert os.path.exists(path.replace('10m','60m'))
+        assert os.path.exists(path.replace('train/10m','label'))
+
     maintrain_object=maintrain()
-    maintrain_object.train(x_datalists,y_datalists)
+    maintrain_object.train(trian_10m_data_path_lists)
                 
 if __name__ == '__main__':
     main()
-

@@ -19,7 +19,7 @@ The source file should be organized as follows:
 
 def cut_data(filedir):
     window_size=384 #384 for 10 m bands, 192 for 20 m bands, 64 for 60 m bands.
-    stride=384#384 for 10 m bands, 192 for 20 m bands, 64 for 60 m bands.
+    stride=384 #384 for 10 m bands, 192 for 20 m bands, 64 for 60 m bands.
     filedirs=glob.glob(os.path.join(filedir, '*'))
     for i in range(len(filedirs)):
         filepath=filedirs[i]
