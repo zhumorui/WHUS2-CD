@@ -30,12 +30,12 @@ parser.add_argument("--out_dir", default='./train_out', help="path of train outp
 parser.add_argument("--image_size", type=int, default=[384,192,64], help="load image size") #网络输入的尺度
 parser.add_argument("--random_seed", type=int, default=1234, help="random seed") #随机数种子
 parser.add_argument('--base_lr', type=float, default=0.001, help='initial learning rate for adam') #基础学习率
-parser.add_argument('--epoch', dest='epoch', type=int, default=100, help='# of epoch') #训练的epoch数量
+parser.add_argument('--epoch', dest='epoch', type=int, default=40, help='# of epoch') #训练的epoch数量
 parser.add_argument("--lamda", type=float, default=10.0, help="L1 lamda") #训练中L1_Loss前的乘数
 parser.add_argument('--beta1', dest='beta1', type=float, default=0.5, help='momentum term of adam') #adam优化器的beta1参数
 parser.add_argument('--beta2', dest='beta2', type=float, default=0.9, help='momentum term of adam') #adam优化器的beta1参数
-parser.add_argument("--summary_pred_every", type=int, default=100, help="times to summary.") #训练中每过多少step保存训练日志(记录一下loss值)
-parser.add_argument("--write_pred_every", type=int, default=100, help="times to write.") #训练中每过多少step保存可视化结果
+parser.add_argument("--summary_pred_every", type=int, default=1000, help="times to summary.") #训练中每过多少step保存训练日志(记录一下loss值)
+parser.add_argument("--write_pred_every", type=int, default=1000, help="times to write.") #训练中每过多少step保存可视化结果
 parser.add_argument("--save_pred_every", type=int, default=10000, help="times to save.") #训练中每过多少step保存模型(可训练参数)
 parser.add_argument("--train_data_path", default='prepared_dataset/train', help="path of training datas.") #训练图片路径, 其他波段数据路径自动识别
 parser.add_argument("--batch_size", type=int, default=6,help="load batch size") #batch_size
@@ -187,7 +187,6 @@ def main():
         os.makedirs(args.out_dir)
 
     trian_10m_data_path_lists = make_train_data_list(args.train_data_path) 
-    trian_10m_data_path_lists = trian_10m_data_path_lists[:100]
     
     # Check dataset and label data integrity
     for path in trian_10m_data_path_lists:
